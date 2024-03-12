@@ -1,0 +1,2 @@
+rosrun usb_cam usb_cam_node _image_height:=960 _image_width:=2560 _video_device:=/dev/video1
+
