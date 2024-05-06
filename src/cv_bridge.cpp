@@ -6,7 +6,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-#include <vector> 
+#include <vector>
+#include <math.h>
 
 using namespace cv;
 using namespace std;
@@ -91,6 +92,37 @@ public:
   }
 };
 
+int getMaxAreaContourId(vector <vector<cv::Point>> contours) {
+    double maxArea = 0;
+    int maxAreaContourId = -1;
+    for (int j = 0; j < contours.size(); j++) {
+        double newArea = cv::contourArea(contours.at(j));
+        if (newArea > maxArea) {
+            maxArea = newArea;
+            maxAreaContourId = j;
+        } // End if
+    } // End for
+    return maxAreaContourId;
+} // End function
+
+float angleBetween(const Point &v1, const Point &v2)
+{
+    float len1 = sqrt(v1.x * v1.x + v1.y * v1.y);
+    float len2 = sqrt(v2.x * v2.x + v2.y * v2.y);
+
+    float dot = v1.x * v2.x + v1.y * v2.y;
+
+    float a = dot / (len1 * len2);
+
+    if (a >= 1.0)
+        return 0.0;
+    else if (a <= -1.0)
+        return M_PI;
+    else
+        return acos(a); // 0..PI
+}
+
+
 // int main(int argc, char** argv)
 // {
 //   ros::init(argc, argv, "image_converter");
@@ -168,6 +200,7 @@ public:
  {
     VideoCapture cap(1); //capture the video from web cam
 
+
     if ( !cap.isOpened() )  // if not success, exit program
     {
          cout << "Cannot open the web cam" << endl;
@@ -229,7 +262,9 @@ public:
 
   inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholdedYellow); //Threshold the image yellow
   //inRange(imgHSV, Scalar(9, iLowS, iLowV), Scalar(18, iHighS, iHighV), imgThresholdedBlue); //Threshold the blue
-      
+  
+  //blur( imgThresholdedYellow, imgThresholdedYellow, Size(10,10) );
+
   //morphological opening (remove small objects from the foreground)
   erode(imgThresholdedYellow, imgThresholdedYellow, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
   dilate( imgThresholdedYellow, imgThresholdedYellow, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
@@ -264,7 +299,55 @@ public:
 
   vector<vector<Point>> contours;
   vector<Vec4i> hierarchy;
-  findContours(imgThresholdedYellow, contours, hierarchy, RETR_TREE, CHAIN_APPROX_NONE);
+  findContours(imgThresholdedYellow, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+  
+
+  vector<vector<Point> > contours_poly( contours.size() );
+  vector<RotatedRect> boundRect(contours.size());
+  Vec4f fitline;
+   cv::Point pt1, pt2;
+       float d, t;
+  
+
+  int i = getMaxAreaContourId(contours); //find biggest contour
+
+   Mat drawing = leftcap.clone();
+
+  if(i >= 0){
+  approxPolyDP( contours[i], contours_poly[i], 3, true );
+  boundRect[i] = minAreaRect( contours[i] );
+
+  Scalar color = Scalar( 255, 0, 0 );
+
+  fitLine(contours[i],fitline, DIST_L1 ,0, 0.01, 0.01);
+
+  Point2f rect_points[4];
+  boundRect[i].points( rect_points );
+
+  // ... and the long enough line to cross the whole image
+  d = sqrt((double)fitline[0] * fitline[0] + (double)fitline[1] * fitline[1]);
+  fitline[0] /= d;
+  fitline[1] /= d;
+  t = (float)(drawing.cols + drawing.rows);
+  pt1.x = cvRound(fitline[2] - fitline[0] * t);
+  pt1.y = cvRound(fitline[3] - fitline[1] * t);
+  pt2.x = cvRound(fitline[2] + fitline[0] * t);
+  pt2.y = cvRound(fitline[3] + fitline[1] * t);
+  cv::line(drawing, pt1, pt2, cv::Scalar(0, 255, 0));//, 0, LINE_AA, 0);
+
+  cout << "Vx "<< fitline[0] << " Vy "<< fitline[1] <<" angle " << atan2(fitline[1], fitline[0])*(180/M_PI) + 90<< " " << endl;
+
+  //cout << "pont1 "<< fitline[2] <<" " << "point2"<< fitline[3]<<endl;
+
+  for ( int j = 0; j < 4; j++ )
+  {
+    line( drawing, rect_points[j], rect_points[(j+1)%4], color );
+
+  }
+
+  }
+  imshow( "Contours", drawing );
 
   // draw contours on the original image
   Mat image_copy = leftcap.clone();
