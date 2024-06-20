@@ -198,7 +198,9 @@ float angleBetween(const Point &v1, const Point &v2)
 
  int main( int argc, char** argv )
  {
-    VideoCapture cap(1); //capture the video from web cam
+    VideoCapture cap; //capture the video from web cam
+
+    
 
 
     if ( !cap.isOpened() )  // if not success, exit program
