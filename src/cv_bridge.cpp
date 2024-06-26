@@ -122,6 +122,67 @@ float angleBetween(const Point &v1, const Point &v2)
         return acos(a); // 0..PI
 }
 
+Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours, vector<Vec4i> &hierarchy, cv::Point &pt1, cv::Point &pt2, Scalar color, Vec4f &fitline)
+{
+  findContours(image, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+  vector<vector<Point> > contours_poly( contours.size() );
+  vector<RotatedRect> boundRect(contours.size());
+
+  float d, t;
+
+  Point2f rect_points[4];
+
+  int i = getMaxAreaContourId(contours); //find biggest contour 
+
+
+  if(i >= 0){
+    approxPolyDP( contours[i], contours_poly[i], 3, true );
+    boundRect[i] = minAreaRect( contours[i] );
+
+    fitLine(contours[i],fitline, DIST_L1 ,0, 0.01, 0.01);
+
+    
+    boundRect[i].points( rect_points );
+
+    // ... and the long enough line to cross the whole image
+    d = sqrt((double)fitline[0] * fitline[0] + (double)fitline[1] * fitline[1]);
+    fitline[0] /= d;
+    fitline[1] /= d;
+    t = (float)(drawing.cols + drawing.rows);
+    pt1.x = cvRound(fitline[2] - fitline[0] * t);
+    pt1.y = cvRound(fitline[3] - fitline[1] * t);
+    pt2.x = cvRound(fitline[2] + fitline[0] * t);
+    pt2.y = cvRound(fitline[3] + fitline[1] * t);
+    cv::line(drawing, pt1, pt2, cv::Scalar(0, 255, 0));//, 0, LINE_AA, 0);
+
+    //cout << "Vx "<< fitline[0] << " Vy "<< fitline[1] <<" angle " << atan2(fitline[1], fitline[0])*(180/M_PI) + 90<< " " << endl;
+
+    //cout << "pont1 "<< fitline[2] <<" " << "point2"<< fitline[3]<<endl;
+
+    for ( int j = 0; j < 4; j++ )
+    {
+      line( drawing, rect_points[j], rect_points[(j+1)%4], color );
+
+    }
+
+  }
+  return rect_points[4];
+}
+
+float linearea(Vec4f fitline)
+{
+  float angle = atan2(fitline[1], fitline[0])*(180/M_PI) + 90;
+
+  if (angle > 90){
+    return angle = -180 + angle;
+  }
+  else{
+    return angle;
+  }
+
+}
+
 
 // int main(int argc, char** argv)
 // {
@@ -198,7 +259,7 @@ float angleBetween(const Point &v1, const Point &v2)
 
  int main( int argc, char** argv )
  {
-    VideoCapture cap; //capture the video from web cam
+    VideoCapture cap(1); //capture the video from web cam
 
     
 
@@ -214,6 +275,9 @@ float angleBetween(const Point &v1, const Point &v2)
  int iLowH = 0;
  int iHighH = 255;
 
+ int iLowHB = 0;
+ int iHighHB = 255;
+ 
  int iLowS = 0; 
  int iHighS = 255;
 
@@ -223,6 +287,9 @@ float angleBetween(const Point &v1, const Point &v2)
  //Create trackbars in "Control" window
  createTrackbar("LowH", "Control", &iLowH, 255); //Hue (0 - 179)
  createTrackbar("HighH", "Control", &iHighH, 255);
+
+ createTrackbar("LowHB", "Control", &iLowHB, 255); //Hue (0 - 179)
+ createTrackbar("HighHB", "Control", &iHighHB, 255);
 
  createTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
  createTrackbar("HighS", "Control", &iHighS, 255);
@@ -263,7 +330,7 @@ float angleBetween(const Point &v1, const Point &v2)
   Mat imgThresholdedBlue;
 
   inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholdedYellow); //Threshold the image yellow
-  //inRange(imgHSV, Scalar(9, iLowS, iLowV), Scalar(18, iHighS, iHighV), imgThresholdedBlue); //Threshold the blue
+  inRange(imgHSV, Scalar(iLowHB, iLowS, iLowV), Scalar(iHighHB, iHighS, iHighV), imgThresholdedBlue); //Threshold the blue
   
   //blur( imgThresholdedYellow, imgThresholdedYellow, Size(10,10) );
 
@@ -271,94 +338,69 @@ float angleBetween(const Point &v1, const Point &v2)
   erode(imgThresholdedYellow, imgThresholdedYellow, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
   dilate( imgThresholdedYellow, imgThresholdedYellow, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
 
-  // erode(imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-  // dilate( imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+  erode(imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+  dilate( imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
 
   //morphological closing (fill small holes in the foreground)
   dilate( imgThresholdedYellow, imgThresholdedYellow, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
   erode(imgThresholdedYellow, imgThresholdedYellow, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
 
-  // dilate( imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-  // erode(imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+  dilate( imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+  erode(imgThresholdedBlue, imgThresholdedBlue, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
 
 
-  // for (int i = 0; i < imgThresholdedYellow.rows; i++ ){
-  //   for (int j = 0; j < imgThresholdedYellow.cols; j++){
+//Find contours and lines of best fit
+  vector<vector<Point>> contoursY;
+  vector<Vec4i> hierarchyY;
+
+  vector<vector<Point>> contoursB;
+  vector<Vec4i> hierarchyB;
 
 
-  //     cout << imgThresholdedYellow.at<double>(j, i) << " ";
+  Vec4f fitlineY;
+  cv::Point pt1y, pt2y;
 
-  //   }
-  //   cout << endl;
-  // }
+  Vec4f fitlineB;
+  cv::Point pt1b, pt2b;
 
-  // cv::MatIterator_<double> _it = imgThresholdedYellow.begin<double>();
-  // for(;_it!=imgThresholdedYellow.end<double>(); _it++){
-  //   std::cout << *_it << std::endl;
-  // }
 
-  //cout << imgThresholdedYellow.cols << endl;
 
-  vector<vector<Point>> contours;
-  vector<Vec4i> hierarchy;
-  findContours(imgThresholdedYellow, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+  Scalar colorY = Scalar( 255, 0, 0 );
 
-  
 
-  vector<vector<Point> > contours_poly( contours.size() );
-  vector<RotatedRect> boundRect(contours.size());
-  Vec4f fitline;
-   cv::Point pt1, pt2;
-       float d, t;
-  
+  Scalar colorB = Scalar( 0, 0, 255 );
 
-  int i = getMaxAreaContourId(contours); //find biggest contour
+  Mat drawing = leftcap.clone();
 
-   Mat drawing = leftcap.clone();
 
-  if(i >= 0){
-  approxPolyDP( contours[i], contours_poly[i], 3, true );
-  boundRect[i] = minAreaRect( contours[i] );
+  Point2f rect_pointsY[4];
+  Point2f rect_pointsB[4];
 
-  Scalar color = Scalar( 255, 0, 0 );
+  rect_pointsY[4] = contourbouding(imgThresholdedYellow, drawing, contoursY, hierarchyY, pt1y, pt2y, colorY, fitlineY  );
 
-  fitLine(contours[i],fitline, DIST_L1 ,0, 0.01, 0.01);
+  rect_pointsB[4] = contourbouding(imgThresholdedBlue, drawing, contoursB, hierarchyB, pt1b, pt2b, colorB, fitlineB  );
 
-  Point2f rect_points[4];
-  boundRect[i].points( rect_points );
-
-  // ... and the long enough line to cross the whole image
-  d = sqrt((double)fitline[0] * fitline[0] + (double)fitline[1] * fitline[1]);
-  fitline[0] /= d;
-  fitline[1] /= d;
-  t = (float)(drawing.cols + drawing.rows);
-  pt1.x = cvRound(fitline[2] - fitline[0] * t);
-  pt1.y = cvRound(fitline[3] - fitline[1] * t);
-  pt2.x = cvRound(fitline[2] + fitline[0] * t);
-  pt2.y = cvRound(fitline[3] + fitline[1] * t);
-  cv::line(drawing, pt1, pt2, cv::Scalar(0, 255, 0));//, 0, LINE_AA, 0);
-
-  cout << "Vx "<< fitline[0] << " Vy "<< fitline[1] <<" angle " << atan2(fitline[1], fitline[0])*(180/M_PI) + 90<< " " << endl;
-
-  //cout << "pont1 "<< fitline[2] <<" " << "point2"<< fitline[3]<<endl;
-
-  for ( int j = 0; j < 4; j++ )
-  {
-    line( drawing, rect_points[j], rect_points[(j+1)%4], color );
-
-  }
-
-  }
   imshow( "Contours", drawing );
+
+  float angY;
+  float angB;
+
+  angY = linearea(fitlineY);
+  angB = linearea(fitlineB);
+
+  cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB <<endl;
 
   // draw contours on the original image
   Mat image_copy = leftcap.clone();
-  drawContours(image_copy, contours, -1, Scalar(0, 255, 0), 2);
+
+  drawContours(image_copy, contoursY, -1, Scalar(0, 255, 0), 2);
+  drawContours(image_copy, contoursB, -1, Scalar(0, 0, 255), 2);
+
   imshow("None approximation", image_copy);
 
   imshow("Thresholded Image Yellow", imgThresholdedYellow); //show the thresholded image
-  // imshow("Thresholded Image Blue", imgThresholdedBlue); //show the thresholded image
-  imshow("Original", leftcap); //show the original image
+  imshow("Thresholded Image Blue", imgThresholdedBlue); //show the thresholded image
+  //imshow("Original", leftcap); //show the original image
 
 
         if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
