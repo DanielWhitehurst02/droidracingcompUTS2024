@@ -13,9 +13,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
+  serial
 )
 
 find_package(OpenCV REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -154,6 +156,8 @@ add_executable(droidracing_node src/cv_bridge.cpp)
    ${OpenCV_LIBRARIES}
    ${catkin_LIBRARIES}
  )
+ 
+ #add_library(serial ${EXT_SOURCES})
 
 #############
 ## Install ##

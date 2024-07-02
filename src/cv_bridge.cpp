@@ -9,10 +9,25 @@
 #include <vector>
 #include <math.h>
 
+//serial library
+#include "serial/serial.h"
+
+//threading libraries
+#include <thread>
+#include <mutex> 
+
+
 using namespace cv;
 using namespace std;
 
 static const std::string OPENCV_WINDOW = "Image window";
+
+mutex mtx;
+
+int steerAng = 90;
+
+serial::Serial my_serial("/dev/ttyACM0", 19200, serial::Timeout::simpleTimeout(3000));
+
 
 class ImageConverter
 {
@@ -183,82 +198,30 @@ float linearea(Vec4f fitline)
 
 }
 
+void serialThread()
+{
+  while (1){
 
-// int main(int argc, char** argv)
-// {
-//   ros::init(argc, argv, "image_converter");
-//   ImageConverter ic;
-//   ros::spin();
   
-//   cv::Mat right;
-//   cv::Mat left;
+  mtx.lock();
 
-//   namedWindow("Control"); //create a window called "Control"
+  string steerAngstr = to_string(90 - steerAng)+"\n";
 
+  size_t bytesWritten = my_serial.write(steerAngstr);
 
-//  int iLowH = 0;
-//  int iHighH = 179;
-
-//  int iLowS = 0; 
-//  int iHighS = 255;
-
-//  int iLowV = 0;
-//  int iHighV = 255;
-
-//  //Create trackbars in "Control" window
-//  createTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
-//  createTrackbar("HighH", "Control", &iHighH, 179);
-
-//  createTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
-//  createTrackbar("HighS", "Control", &iHighS, 255);
-
-//  createTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
-//  createTrackbar("HighV", "Control", &iHighV, 255);
-
-//   while (true)
-//   {
-    
-//     ic.Getstereo(left, right);
-//     //     bool bSuccess = right; // read a new frame from video
-
-//     //      if (!bSuccess) //if not success, break loop
-//     //     {
-//     //          cout << "Cannot read a frame from video stream" << endl;
-//     //          break;
-//     //     }
-
-//     Mat imgHSV;
-
-//     cvtColor(right, imgHSV, COLOR_RGB2HSV); //Convert the captured frame from BGR to HSV
- 
-//     Mat imgThresholded;
-
-//     inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
-      
-//     //morphological opening (remove small objects from the foreground)
-//     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-//     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-
-//     //morphological closing (fill small holes in the foreground)
-//     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-//     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-
-//     imshow("Thresholded Image", imgThresholded); //show the thresholded image
-//     imshow("Original", right); //show the original image
-
-//         if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
-//        {
-//             cout << "esc key is pressed by user" << endl;
-//             break; 
-//        }
-//   }
+   std::cout << "run is true: "<< std::endl;
+  mtx.unlock();
+  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  //my_serial.flush();
+  }
+}
 
 
-//   return 0;
-// }
+
 
  int main( int argc, char** argv )
  {
+   
     VideoCapture cap(1); //capture the video from web cam
 
     
@@ -271,6 +234,25 @@ float linearea(Vec4f fitline)
     }
 
     namedWindow("Control"); //create a window called "Control"
+
+
+//serial::Serial my_serial("/dev/ttyACM0", 9600, serial::Timeout::simpleTimeout(3000));
+
+  if (my_serial.isOpen())
+  {
+    std::cout << "port opened successfully" << std::endl;
+  }
+  else
+  {
+    cout << "Port failed to open" << endl;
+  }
+
+my_serial.flushOutput();
+std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+
+
+
 
  int iLowH = 0;
  int iHighH = 255;
@@ -297,8 +279,17 @@ float linearea(Vec4f fitline)
  createTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
  createTrackbar("HighV", "Control", &iHighV, 255);
 
+thread serialcntrl_ = thread(serialThread);
+
+
+
+//serialcntrl_.join();
+
+
+
     while (true)
     {
+     
         //Mat imgOriginal;
 
         //bool bSuccess = cap.read(imgOriginal); // read a new frame from video
@@ -388,7 +379,13 @@ float linearea(Vec4f fitline)
   angY = linearea(fitlineY);
   angB = linearea(fitlineB);
 
-  cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB <<endl;
+  //cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB <<endl;
+
+  //mtx.lock();
+
+  steerAng = (angY+angB)/2;
+
+  //string steerAngstr = to_string(90 - steerAng)+"\n";
 
   // draw contours on the original image
   Mat image_copy = leftcap.clone();
@@ -403,6 +400,13 @@ float linearea(Vec4f fitline)
   //imshow("Original", leftcap); //show the original image
 
 
+  //size_t bytesWritten = my_serial.write(steerAngstr);
+
+  cout << "val "<< 90 - steerAng<< endl;
+  //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  //my_serial.flushOutput();
+
         if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
        {
             cout << "esc key is pressed by user" << endl;
@@ -412,7 +416,7 @@ float linearea(Vec4f fitline)
        
 
     }
-
+  //mtx.unlock();
 
    return 0;
 
