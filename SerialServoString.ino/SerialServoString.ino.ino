@@ -21,11 +21,15 @@
 
 Servo steering;
 
-String inputString = "";         // a String to hold incoming data
-bool stringComplete = false;  // whether the string is complete
+Servo throttle;
 
-int steer = 0;
-int i2;
+String inputString = "";         // a String to hold incoming data
+String inputString2 = "";
+bool stringComplete = false;  // whether the string is complete
+bool stringComplete2 = false;
+
+int steer = 90;
+int throt = 0;
 
 
 void setup() {
@@ -34,21 +38,29 @@ void setup() {
   // reserve 200 bytes for the inputString:
   inputString.reserve(30);
   steering.attach(9);
+  throttle.attach(10);
+  
 }
 
 void loop() {
   // print the string when a newline arrives:
-  if (stringComplete) {
-    //Serial.println(inputString);
+  if (stringComplete && stringComplete2) {
+    //Serial.println(inputString2);
 
     steer = atoi(inputString.c_str());
+    throt = atoi(inputString2.c_str());
     //Serial.println(steer);
     // clear the string:
     inputString = "";
+    inputString2 = "";
     stringComplete = false;
+    stringComplete2 = false;
+    
   }
 
   steering.write(steer);
+  throttle.write(throt);
+  delay(30);
 
 }
 
@@ -61,12 +73,23 @@ void serialEvent() {
   while (Serial.available()) {
     // get the new byte:
     char inChar = (char)Serial.read();
+
+    if(stringComplete){
+      inputString2 +=inChar;
+
+     if(inChar == '\n'){
+      stringComplete2 = true;
+     }
+    }
+    else{
     // add it to the inputString:
     inputString += inChar;
     // if the incoming character is a newline, set a flag so the main loop can
     // do something about it:
-    if (inChar == '\n') {
-      stringComplete = true;
+      if (inChar == ',') {
+        stringComplete = true;
+      }
     }
+    
   }
 }

@@ -9,6 +9,8 @@
 #include <vector>
 #include <math.h>
 
+
+
 //serial library
 #include "serial/serial.h"
 
@@ -26,6 +28,13 @@ mutex mtx;
 
 int steerAng = 90;
 int throttle = 0;
+
+//parameters
+int maxThrottle = 30;
+int linelenght = 75;
+int contArea = 300;
+
+
 
 serial::Serial my_serial("/dev/ttyACM0", 19200, serial::Timeout::simpleTimeout(3000));
 
@@ -108,7 +117,7 @@ public:
   }
 };
 
-int getMaxAreaContourId(vector <vector<cv::Point>> contours) {
+int getMaxAreaContourId(vector <vector<cv::Point>> contours, bool &thresh) {
     double maxArea = 0;
     int maxAreaContourId = -1;
     for (int j = 0; j < contours.size(); j++) {
@@ -116,10 +125,52 @@ int getMaxAreaContourId(vector <vector<cv::Point>> contours) {
         if (newArea > maxArea) {
             maxArea = newArea;
             maxAreaContourId = j;
+            //cout << "Area: " << maxArea << endl;
         } // End if
     } // End for
+    if (maxArea > contArea && contours.size() > 0){
+     
+        thresh = true;
+      
+    }
+    else{
+      thresh = false;
+    }
     return maxAreaContourId;
 } // End function
+
+char showImages(string title, vector<Mat>& imgs, Size cellSize) 
+{
+char k=0;
+    namedWindow(title);
+    float nImgs=imgs.size();
+    int   imgsInRow=ceil(sqrt(nImgs));     // You can set this explicitly
+    int   imgsInCol=ceil(nImgs/imgsInRow); // You can set this explicitly
+
+    int resultImgW=cellSize.width*imgsInRow;
+    int resultImgH=cellSize.height*imgsInCol;
+
+    Mat resultImg=Mat::zeros(resultImgH,resultImgW,CV_8UC3);
+    int ind=0;
+    Mat tmp;
+    for(int i=0;i<imgsInCol;i++)
+    {
+        for(int j=0;j<imgsInRow;j++)
+        {
+            if(ind<imgs.size())
+            {
+            int cell_row=i*cellSize.height;
+            int cell_col=j*cellSize.width;
+            imgs[ind].copyTo(resultImg(Range(cell_row,cell_row+tmp.rows),Range(cell_col,cell_col+tmp.cols)));
+            }
+            ind++;
+        }
+    }
+    imshow(title,resultImg);
+    k=waitKey(10);
+    return k;
+}
+
 
 float angleBetween(const Point &v1, const Point &v2)
 {
@@ -138,7 +189,7 @@ float angleBetween(const Point &v1, const Point &v2)
         return acos(a); // 0..PI
 }
 
-Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours, vector<Vec4i> &hierarchy, cv::Point &pt1, cv::Point &pt2, Scalar color, Vec4f &fitline)
+Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours, vector<Vec4i> &hierarchy, cv::Point &pt1, cv::Point &pt2, Scalar color, Vec4f &fitline, bool &threshold)
 {
   findContours(image, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
@@ -149,17 +200,42 @@ Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours
 
   Point2f rect_points[4];
 
-  int i = getMaxAreaContourId(contours); //find biggest contour 
+  int i = getMaxAreaContourId(contours, threshold); //find biggest contour 
 
 
-  if(i >= 0){
+  if(i >= 0 && threshold){
     approxPolyDP( contours[i], contours_poly[i], 3, true );
     boundRect[i] = minAreaRect( contours[i] );
 
     fitLine(contours[i],fitline, DIST_L1 ,0, 0.01, 0.01);
 
     
-    boundRect[i].points( rect_points );
+    boundRect[i].points(rect_points);
+
+    int longlength = 0;
+    int newlength = 0;
+
+    for(int u = 0; u < 3; u++)
+    {
+
+      
+        newlength = sqrt(pow((rect_points[u].x - rect_points[u+1].x), 2) + pow((rect_points[u].y - rect_points[u+1].y),2));
+
+      
+
+      if(newlength > longlength){
+        longlength = newlength;
+      }
+      else{
+
+      }
+      
+    }
+    
+    if(longlength < linelenght){
+       Point2f noPoints[4];
+       return noPoints[4];
+    }
 
     // ... and the long enough line to cross the whole image
     d = sqrt((double)fitline[0] * fitline[0] + (double)fitline[1] * fitline[1]);
@@ -172,7 +248,7 @@ Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours
     pt2.y = cvRound(fitline[3] + fitline[1] * t);
     cv::line(drawing, pt1, pt2, cv::Scalar(0, 255, 0));//, 0, LINE_AA, 0);
 
-    //cout << "Vx "<< fitline[0] << " Vy "<< fitline[1] <<" angle " << atan2(fitline[1], fitline[0])*(180/M_PI) + 90<< " " << endl;
+    //cout << "Vx "<< fitline[0] << " Vy "<< fitline[1] <<" angle " << atan2(fitline[1], fitline[0])*(180/M_PI) + 90<< " " << "threshold: "<< threshold <<endl;
 
     //cout << "pont1 "<< fitline[2] <<" " << "point2"<< fitline[3]<<endl;
 
@@ -217,13 +293,33 @@ void serialThread()
   }
 }
 
+void throttleThread(){
+  char inpt;
+  while(1){
+    cin >> inpt;
+    if (inpt == 'w'){
+      mtx.lock();
+      throttle = maxThrottle;
+      mtx.unlock();
+    }
+    else if (inpt == 's'){
+      mtx.lock();
+      throttle = 0;
+      mtx.unlock();
+    }
+  }
+}
 
 
+///////////////////////////////////////////////
 
  int main( int argc, char** argv )
  {
    
-    VideoCapture cap(0); //capture the video from web cam
+  bool contourThreshY = false;
+  bool contourThreshB = false;
+
+    VideoCapture cap(1); //capture the video from web cam
 
     
 
@@ -281,48 +377,48 @@ std::this_thread::sleep_for(std::chrono::milliseconds(1000));
  createTrackbar("HighV", "Control", &iHighV, 255);
 
 thread serialcntrl_ = thread(serialThread);
+thread input_ = thread(throttleThread);
 
 
 
 //serialcntrl_.join();
 
+char input;
 
+while (true)
+{
+  
+  //Mat imgOriginal;
 
-    while (true)
-    {
-     
-        //Mat imgOriginal;
+  //bool bSuccess = cap.read(imgOriginal); // read a new frame from video
 
-        //bool bSuccess = cap.read(imgOriginal); // read a new frame from video
+  //Mat temp;
+  
+  Mat temp; //(cv::Range(0,480), cv::Range(0,640)); //left
+  cap >> temp;
 
-        //Mat temp;
+  flip(temp ,temp,-1);
 
-       
-        Mat temp; //(cv::Range(0,480), cv::Range(0,640)); //left
-        cap >> temp;
+  Mat leftcap = temp(cv::Range(0,240), cv::Range(0,320)); //left
+  Mat rightcap = temp(cv::Range(0,240), cv::Range(320,640)); //right
 
-        
-
-        flip(temp ,temp,-1);
-
-        Mat leftcap = temp(cv::Range(0,240), cv::Range(0,320)); //left
-        //Mat rightcap = temp(cv::Range(0,480), cv::Range(640,1280)); //right
-
-        //  if (!bSuccess) //if not success, break loop
-        // {
-        //      cout << "Cannot read a frame from video stream" << endl;
-        //      break;
-        // }
+  //  if (!bSuccess) //if not success, break loop
+  // {
+  //      cout << "Cannot read a frame from video stream" << endl;
+  //      break;
+  // }
 
   Mat imgHSV;
+  Mat imgHSVR;
 
   cvtColor(leftcap, imgHSV, COLOR_RGB2HSV); //Convert the captured frame from BGR to HSV
+  cvtColor(rightcap, imgHSVR, COLOR_RGB2HSV); 
  
   Mat imgThresholdedYellow;
   Mat imgThresholdedBlue;
 
   inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholdedYellow); //Threshold the image yellow
-  inRange(imgHSV, Scalar(iLowHB, iLowS, iLowV), Scalar(iHighHB, iHighS, iHighV), imgThresholdedBlue); //Threshold the blue
+  inRange(imgHSVR, Scalar(iLowHB, iLowS, iLowV), Scalar(iHighHB, iHighS, iHighV), imgThresholdedBlue); //Threshold the blue
   
   //blur( imgThresholdedYellow, imgThresholdedYellow, Size(10,10) );
 
@@ -368,11 +464,11 @@ thread serialcntrl_ = thread(serialThread);
   Point2f rect_pointsY[4];
   Point2f rect_pointsB[4];
 
-  rect_pointsY[4] = contourbouding(imgThresholdedYellow, drawing, contoursY, hierarchyY, pt1y, pt2y, colorY, fitlineY  );
+  rect_pointsY[4] = contourbouding(imgThresholdedYellow, drawing, contoursY, hierarchyY, pt1y, pt2y, colorY, fitlineY, contourThreshY );
 
-  rect_pointsB[4] = contourbouding(imgThresholdedBlue, drawing, contoursB, hierarchyB, pt1b, pt2b, colorB, fitlineB  );
+  rect_pointsB[4] = contourbouding(imgThresholdedBlue, drawing, contoursB, hierarchyB, pt1b, pt2b, colorB, fitlineB, contourThreshB );
 
-  imshow( "Contours", drawing );
+  
 
   float angY;
   float angB;
@@ -380,31 +476,63 @@ thread serialcntrl_ = thread(serialThread);
   angY = linearea(fitlineY);
   angB = linearea(fitlineB);
 
-  //cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB <<endl;
+  //cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB << " Throttle: "<<throttle <<endl;
 
   //mtx.lock();
+  if (contourThreshY && contourThreshB){
+    steerAng = (angY+angB)/2;
+  }
+  else if (contourThreshY && !contourThreshB){
+    steerAng = angY;
+  }
+  else if (!contourThreshY && contourThreshB){
+    steerAng = angY;
+  }
+  else {
+    steerAng = 0;
+  }
 
-  steerAng = (angY+angB)/2;
+
 
   //string steerAngstr = to_string(90 - steerAng)+"\n";
 
   // draw contours on the original image
-  Mat image_copy = leftcap.clone();
 
-  drawContours(image_copy, contoursY, -1, Scalar(0, 255, 0), 2);
-  drawContours(image_copy, contoursB, -1, Scalar(0, 0, 255), 2);
 
-  imshow("None approximation", image_copy);
+  string steerAngstr = to_string(steerAng);
+  string throttlestr = to_string(throttle);
 
-  imshow("Thresholded Image Yellow", imgThresholdedYellow); //show the thresholded image
-  imshow("Thresholded Image Blue", imgThresholdedBlue); //show the thresholded image
+  putText(drawing, steerAngstr, cv::Point(10, drawing.rows / 2), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 0, 0), 2);
+  putText(drawing, throttlestr, cv::Point(10, drawing.rows / 3), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 0, 0), 2);
+
+
+
+  // drawContours(drawing, contoursY, -1, Scalar(0, 255, 0), 2);
+  // drawContours(drawing, contoursB, -1, Scalar(0, 0, 255), 2);
+
+
+  // vector<Mat> imgs;
+  // imgs.push_back(imgThresholdedYellow);
+  // imgs.push_back(imgThresholdedBlue);
+  // imgs.push_back(image_copy);
+  // imgs.push_back(drawing);
+  
+  // showImages("Thresholded Image Yellow / Blue", imgs, imgThresholdedYellow.size());
+
+  imshow( "Contours", drawing );
+
+  hconcat(imgThresholdedYellow,imgThresholdedBlue,imgThresholdedYellow); //combine images
+
+  imshow("Thresholded Image Yellow / Blue", imgThresholdedYellow); //show the thresholded image
+  //imshow("Thresholded Image Blue", imgThresholdedBlue); //show the thresholded image
   //imshow("Original", leftcap); //show the original image
 
 
   //size_t bytesWritten = my_serial.write(steerAngstr);
 
-  cout <<"val; " << steerAng << " normalizsed val "<< 90 - steerAng<< endl;
+  //cout <<"val; " << steerAng << " normalizsed val "<< 90 - steerAng<< endl;
   //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 
   //my_serial.flushOutput();
 
