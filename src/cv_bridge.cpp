@@ -25,6 +25,7 @@ static const std::string OPENCV_WINDOW = "Image window";
 mutex mtx;
 
 int steerAng = 90;
+int throttle = 0;
 
 serial::Serial my_serial("/dev/ttyACM0", 19200, serial::Timeout::simpleTimeout(3000));
 
@@ -205,11 +206,11 @@ void serialThread()
   
   mtx.lock();
 
-  string steerAngstr = to_string(90 - steerAng)+"\n";
+  string steerAngstr = to_string(90 - steerAng) +","+ to_string(throttle) + "\n";
 
   size_t bytesWritten = my_serial.write(steerAngstr);
 
-   std::cout << "run is true: "<< std::endl;
+  //std::cout << "run is true: "<< std::endl;
   mtx.unlock();
   std::this_thread::sleep_for(std::chrono::milliseconds(30));
   //my_serial.flush();
@@ -402,7 +403,7 @@ thread serialcntrl_ = thread(serialThread);
 
   //size_t bytesWritten = my_serial.write(steerAngstr);
 
-  cout << "val "<< 90 - steerAng<< endl;
+  cout <<"val; " << steerAng << " normalizsed val "<< 90 - steerAng<< endl;
   //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   //my_serial.flushOutput();
