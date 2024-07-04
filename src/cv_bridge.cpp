@@ -223,7 +223,7 @@ void serialThread()
  int main( int argc, char** argv )
  {
    
-    VideoCapture cap(1); //capture the video from web cam
+    VideoCapture cap(0); //capture the video from web cam
 
     
 
