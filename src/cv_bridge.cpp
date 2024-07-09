@@ -30,7 +30,7 @@ int steerAng = 90;
 int throttle = 0;
 
 //parameters
-int maxThrottle = 75;
+int maxThrottle = 65;
 int linelenght = 75;
 int contArea = 300;
 
@@ -351,11 +351,11 @@ std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 
 
- int iLowH = 0;
- int iHighH = 255;
+ int iLowH = 67;
+ int iHighH = 101;
 
- int iLowHB = 0;
- int iHighHB = 255;
+ int iLowHB = 11;
+ int iHighHB = 18;
  
  int iLowS = 0; 
  int iHighS = 255;
