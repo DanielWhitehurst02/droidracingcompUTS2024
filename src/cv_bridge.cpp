@@ -30,7 +30,7 @@ int steerAng = 90;
 int throttle = 0;
 
 //parameters
-int maxThrottle = 73;
+int maxThrottle = 75;
 int linelenght = 75;
 int contArea = 300;
 
@@ -282,7 +282,7 @@ void serialThread()
   
   mtx.lock();
 
-  string steerAngstr = to_string(90 - steerAng) +","+ to_string(throttle) + "\n";
+  string steerAngstr = to_string(-(90 - steerAng)) +","+ to_string(throttle) + "\n";
 
   size_t bytesWritten = my_serial.write(steerAngstr);
 
