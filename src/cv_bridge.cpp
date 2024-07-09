@@ -30,7 +30,7 @@ int steerAng = 90;
 int throttle = 0;
 
 //parameters
-int maxThrottle = 73;
+int maxThrottle = 80;
 int linelenght = 75;
 int contArea = 300;
 int maxArea = 800;
