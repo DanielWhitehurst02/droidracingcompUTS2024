@@ -35,7 +35,7 @@ int linelenght = 75;
 int contArea = 300;
 int maxArea = 800;
 
-bool serialTog = false;
+int serialTog = 0;
 
 serial::Serial my_serial("/dev/ttyACM0", 19200, serial::Timeout::simpleTimeout(3000));
 
@@ -283,20 +283,25 @@ float linearea(Vec4f fitline)
 
 void serialThread()
 {
+  int tempthrot = 0;
   while (1){
 
-  int tempthrot = 0;
+  
 
 
   mtx.lock();
 
-  if(serialTog){
+  if(serialTog == 0){
     tempthrot = 0;
-    serialTog = false;
+    serialTog = 1;
+  }
+  else if (serialTog == 1){
+    tempthrot = 0;
+    serialTog = 2;
   }
   else{
     tempthrot = throttle;
-    serialTog = true;
+    serialTog = 0;
 
   }
 
