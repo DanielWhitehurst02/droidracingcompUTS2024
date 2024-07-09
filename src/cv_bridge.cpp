@@ -33,6 +33,7 @@ int throttle = 0;
 int maxThrottle = 75;
 int linelenght = 75;
 int contArea = 300;
+int maxArea = 800;
 
 
 
@@ -214,6 +215,8 @@ Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours
 
     int longlength = 0;
     int newlength = 0;
+    int shorterlength = 0;
+    int longIndex = 0;
 
     for(int u = 0; u < 3; u++)
     {
@@ -221,10 +224,11 @@ Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours
       
         newlength = sqrt(pow((rect_points[u].x - rect_points[u+1].x), 2) + pow((rect_points[u].y - rect_points[u+1].y),2));
 
-      
+
 
       if(newlength > longlength){
         longlength = newlength;
+        longIndex = u;
       }
       else{
 
@@ -232,7 +236,9 @@ Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours
       
     }
     
-    if(longlength < linelenght){
+    shorterlength = sqrt(pow((rect_points[longIndex].x - rect_points[longIndex+2].x), 2) + pow((rect_points[longIndex].y - rect_points[longIndex+2].y),2));
+    // note longlenght is actually returning the short lenght (cant be fucked fixing)
+    if(shorterlength < linelenght && shorterlength != 1.3*longlength){
        Point2f noPoints[4];
        return noPoints[4];
     }
@@ -250,7 +256,7 @@ Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours
 
     //cout << "Vx "<< fitline[0] << " Vy "<< fitline[1] <<" angle " << atan2(fitline[1], fitline[0])*(180/M_PI) + 90<< " " << "threshold: "<< threshold <<endl;
 
-    //cout << "pont1 "<< fitline[2] <<" " << "point2"<< fitline[3]<<endl;
+    cout << "Lngline "<< longlength <<" " << "short "<< shorterlength << " u: " << longIndex <<endl;
 
     for ( int j = 0; j < 4; j++ )
     {
@@ -282,7 +288,7 @@ void serialThread()
   
   mtx.lock();
 
-  string steerAngstr = to_string(-(90 - steerAng)) +","+ to_string(throttle) + "\n";
+  string steerAngstr = to_string((90 - steerAng)) +","+ to_string(throttle) + "\n";
 
   size_t bytesWritten = my_serial.write(steerAngstr);
 
@@ -319,7 +325,7 @@ void throttleThread(){
   bool contourThreshY = false;
   bool contourThreshB = false;
 
-    VideoCapture cap(0); //capture the video from web cam
+    VideoCapture cap(1); //capture the video from web cam
 
     
 
@@ -397,7 +403,7 @@ while (true)
   Mat temp; //(cv::Range(0,480), cv::Range(0,640)); //left
   cap >> temp;
 
-  flip(temp ,temp,-1);
+  //flip(temp ,temp,-1);
 
   Mat leftcap = temp(cv::Range(0,240), cv::Range(0,320)); //left
   Mat rightcap = temp(cv::Range(0,240), cv::Range(320,640)); //right
@@ -483,16 +489,24 @@ while (true)
     steerAng = (angY+angB)/2;
   }
   else if (contourThreshY && !contourThreshB){
-    steerAng = angY;
+    steerAng = -50;
   }
   else if (!contourThreshY && contourThreshB){
-    steerAng = angY;
+    steerAng = 50;
   }
   else {
-    steerAng = 0;
+    steerAng = 90;
   }
 
+  if (steerAng > 70){
+    steerAng = 70;
+  }
+  else if (steerAng < -70){
+    steerAng = -70;
+  }
 
+  //RIGHT = above 90
+  //Left = below 90
 
   //string steerAngstr = to_string(90 - steerAng)+"\n";
 
