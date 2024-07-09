@@ -319,7 +319,7 @@ void throttleThread(){
   bool contourThreshY = false;
   bool contourThreshB = false;
 
-    VideoCapture cap(1); //capture the video from web cam
+    VideoCapture cap(0); //capture the video from web cam
 
     
 
