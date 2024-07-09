@@ -35,7 +35,7 @@ int linelenght = 75;
 int contArea = 300;
 int maxArea = 800;
 
-
+bool serialTog = false;
 
 serial::Serial my_serial("/dev/ttyACM0", 19200, serial::Timeout::simpleTimeout(3000));
 
@@ -285,10 +285,22 @@ void serialThread()
 {
   while (1){
 
-  
+  int tempthrot = 0;
+
+
   mtx.lock();
 
-  string steerAngstr = to_string((90 - steerAng)) +","+ to_string(throttle) + "\n";
+  if(serialTog){
+    tempthrot = 0;
+    serialTog = false;
+  }
+  else{
+    tempthrot = throttle;
+    serialTog = true;
+
+  }
+
+  string steerAngstr = to_string((90 - steerAng)) +","+ to_string(tempthrot) + "\n";
 
   size_t bytesWritten = my_serial.write(steerAngstr);
 
@@ -325,7 +337,7 @@ void throttleThread(){
   bool contourThreshY = false;
   bool contourThreshB = false;
 
-    VideoCapture cap(0); //capture the video from web cam
+    VideoCapture cap(1); //capture the video from web cam
 
     
 
