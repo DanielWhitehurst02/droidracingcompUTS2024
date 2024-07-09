@@ -284,7 +284,7 @@ float linearea(Vec4f fitline)
 void serialThread()
 {
   int tempthrot = 0;
-  while (1){
+  while (0){
 
   
 
