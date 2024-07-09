@@ -256,7 +256,7 @@ Point2f contourbouding(Mat &image, Mat &drawing, vector<vector<Point>> &contours
 
     //cout << "Vx "<< fitline[0] << " Vy "<< fitline[1] <<" angle " << atan2(fitline[1], fitline[0])*(180/M_PI) + 90<< " " << "threshold: "<< threshold <<endl;
 
-    cout << "Lngline "<< longlength <<" " << "short "<< shorterlength << " u: " << longIndex <<endl;
+    //cout << "Lngline "<< longlength <<" " << "short "<< shorterlength << " u: " << longIndex <<endl;
 
     for ( int j = 0; j < 4; j++ )
     {
@@ -325,7 +325,7 @@ void throttleThread(){
   bool contourThreshY = false;
   bool contourThreshB = false;
 
-    VideoCapture cap(1); //capture the video from web cam
+    VideoCapture cap(0); //capture the video from web cam
 
     
 
