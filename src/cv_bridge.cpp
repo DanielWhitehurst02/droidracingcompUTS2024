@@ -32,7 +32,7 @@ int throttle = 0;
 //parameters
 int maxThrottle = 80;
 int linelenght = 75;
-int contArea = 135;
+int contArea = 175;
 int maxArea = 700;
 
 int serialTog = 0;
@@ -374,16 +374,16 @@ std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 
 
- int iLowH = 67;
- int iHighH = 101;
+ int iLowH = 64;
+ int iHighH = 95;
 
- int iLowHB = 11;
- int iHighHB = 18;
+ int iLowHB = 15;
+ int iHighHB = 20;
  
- int iLowS = 0; 
+ int iLowS = 18; 
  int iHighS = 255;
 
- int iLowV = 0;
+ int iLowV = 204;
  int iHighV = 255;
 
  //Create trackbars in "Control" window
@@ -506,10 +506,10 @@ while (true)
     steerAng = (angY+angB)/2;
   }
   else if (contourThreshY && !contourThreshB){
-    steerAng = angY*1.2;
+    steerAng = -angY;
   }
   else if (!contourThreshY && contourThreshB){
-    steerAng = angB*1.2;
+    steerAng = angB;
   }
   else {
     steerAng = 90;
