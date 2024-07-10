@@ -509,7 +509,8 @@ while (true)
     lastSteer = steerAng;
   }
   else if (contourThreshY && !contourThreshB){
-    steerAng = angY*1.3;
+    //steerAng = angY*1.3;
+    steerAng = -60;
     lastSteer = steerAng;
     //-50
   }
