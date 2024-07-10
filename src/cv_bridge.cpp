@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
+//#include <curses.h>
 
 
 
@@ -325,12 +326,23 @@ void throttleThread(){
     cin >> inpt;
     if (inpt == 'w'){
       mtx.lock();
+      steerAng = 0;
       throttle = maxThrottle;
       mtx.unlock();
     }
     else if (inpt == 's'){
       mtx.lock();
       throttle = 0;
+      mtx.unlock();
+    }
+    else if (inpt == 'd'){
+      mtx.lock();
+      steerAng = -30;
+      mtx.unlock();
+    }
+        else if (inpt == 'a'){
+      mtx.lock();
+      steerAng = 30;
       mtx.unlock();
     }
   }
@@ -345,7 +357,7 @@ void throttleThread(){
   bool contourThreshY = false;
   bool contourThreshB = false;
 
-    VideoCapture cap(0); //capture the video from web cam
+    VideoCapture cap(1); //capture the video from web cam
   
 
     
@@ -504,40 +516,40 @@ while (true)
   float angY;
   float angB;
 
-  angY = -abs(linearea(fitlineY));
-  angB = abs(linearea(fitlineB));
+  // angY = -abs(linearea(fitlineY));
+  // angB = abs(linearea(fitlineB));
 
-  //cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB << " Throttle: "<<throttle <<endl;
+  // //cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB << " Throttle: "<<throttle <<endl;
 
-  //mtx.lock();
-  if (contourThreshY && contourThreshB){
-    steerAng = (angY+angB)/2;
-    lastSteer = steerAng;
-  }
-  else if (contourThreshY && !contourThreshB){
-    //steerAng = angY*1.3;
-    steerAng = -60;
-    lastSteer = steerAng;
-    //-50
-  }
-  else if (!contourThreshY && contourThreshB){
-    //steerAng = angB*1.3;
-    steerAng = 60;
-    lastSteer = steerAng;
-    //50
-  }
-  else {
-    steerAng = lastSteer;
-  }
+  // //mtx.lock();
+  // if (contourThreshY && contourThreshB){
+  //   steerAng = (angY+angB)/2;
+  //   lastSteer = steerAng;
+  // }
+  // else if (contourThreshY && !contourThreshB){
+  //   //steerAng = angY*1.3;
+  //   steerAng = -60;
+  //   lastSteer = steerAng;
+  //   //-50
+  // }
+  // else if (!contourThreshY && contourThreshB){
+  //   //steerAng = angB*1.3;
+  //   steerAng = 60;
+  //   lastSteer = steerAng;
+  //   //50
+  // }
+  // else {
+  //   steerAng = lastSteer;
+  // }
 
-  if (steerAng > 70){
-    steerAng = 70;
-    lastSteer = steerAng;
-  }
-  else if (steerAng < -70){
-    steerAng = -70;
-    lastSteer = steerAng;
-  }
+  // if (steerAng > 70){
+  //   steerAng = 70;
+  //   lastSteer = steerAng;
+  // }
+  // else if (steerAng < -70){
+  //   steerAng = -70;
+  //   lastSteer = steerAng;
+  // }
 
   //RIGHT = above 90
   //Left = below 90
@@ -580,6 +592,7 @@ while (true)
 
   //cout <<"val; " << steerAng << " normalizsed val "<< 90 - steerAng<< endl;
   //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 
 
   //my_serial.flushOutput();
