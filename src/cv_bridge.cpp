@@ -28,6 +28,8 @@ mutex mtx;
 
 int steerAng = 90;
 int throttle = 0;
+int lastSteer = 0;
+
 
 //parameters
 int maxThrottle = 80;
@@ -504,24 +506,29 @@ while (true)
   //mtx.lock();
   if (contourThreshY && contourThreshB){
     steerAng = (angY+angB)/2;
+    lastSteer = steerAng;
   }
   else if (contourThreshY && !contourThreshB){
     steerAng = angY*1.3;
+    lastSteer = steerAng;
     //-50
   }
   else if (!contourThreshY && contourThreshB){
     steerAng = angB*1.3;
+    lastSteer = steerAng;
     //50
   }
   else {
-    steerAng = 0;
+    steerAng = lastSteer;
   }
 
   if (steerAng > 70){
     steerAng = 70;
+    lastSteer = steerAng;
   }
   else if (steerAng < -70){
     steerAng = -70;
+    lastSteer = steerAng;
   }
 
   //RIGHT = above 90
