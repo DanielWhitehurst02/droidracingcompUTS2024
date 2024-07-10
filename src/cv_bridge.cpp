@@ -297,10 +297,10 @@ void serialThread()
     tempthrot = 0;
     serialTog = 1;
   }
-  else if (serialTog == 1){
-    tempthrot = 0;
-    serialTog = 2;
-  }
+  // else if (serialTog == 1){
+  //   tempthrot = 0;
+  //   serialTog = 2;
+  // }
   else{
     tempthrot = throttle;
     serialTog = 0;
