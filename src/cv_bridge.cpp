@@ -32,7 +32,7 @@ int throttle = 0;
 //parameters
 int maxThrottle = 80;
 int linelenght = 75;
-int contArea = 175;
+int contArea = 250;
 int maxArea = 700;
 
 int serialTog = 0;
