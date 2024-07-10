@@ -512,7 +512,7 @@ while (true)
     steerAng = -angB;
   }
   else {
-    steerAng = 90;
+    steerAng = 0;
   }
 
   if (steerAng > 70){
