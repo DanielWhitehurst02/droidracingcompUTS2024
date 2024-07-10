@@ -496,8 +496,8 @@ while (true)
   float angY;
   float angB;
 
-  angY = linearea(fitlineY);
-  angB = linearea(fitlineB);
+  angY = -abs(linearea(fitlineY));
+  angB = abs(linearea(fitlineB));
 
   //cout << "YellowAng: "<< angY <<" " << "BlueAng: "<< angB << " Throttle: "<<throttle <<endl;
 
@@ -506,11 +506,11 @@ while (true)
     steerAng = (angY+angB)/2;
   }
   else if (contourThreshY && !contourThreshB){
-    steerAng = -50;
+    steerAng = -angY;
     //-50
   }
   else if (!contourThreshY && contourThreshB){
-    steerAng = 50;
+    steerAng = angB;
     //50
   }
   else {
