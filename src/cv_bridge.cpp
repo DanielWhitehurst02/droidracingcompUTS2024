@@ -32,8 +32,8 @@ int throttle = 0;
 //parameters
 int maxThrottle = 80;
 int linelenght = 75;
-int contArea = 300;
-int maxArea = 800;
+int contArea = 135;
+int maxArea = 700;
 
 int serialTog = 0;
 
@@ -506,10 +506,10 @@ while (true)
     steerAng = (angY+angB)/2;
   }
   else if (contourThreshY && !contourThreshB){
-    steerAng = -50;
+    steerAng = angY*1.2;
   }
   else if (!contourThreshY && contourThreshB){
-    steerAng = 50;
+    steerAng = angB*1.2;
   }
   else {
     steerAng = 90;
