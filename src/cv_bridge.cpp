@@ -506,11 +506,11 @@ while (true)
     steerAng = (angY+angB)/2;
   }
   else if (contourThreshY && !contourThreshB){
-    steerAng = angY;
+    steerAng = angY*1.3;
     //-50
   }
   else if (!contourThreshY && contourThreshB){
-    steerAng = angB;
+    steerAng = angB*1.3;
     //50
   }
   else {
