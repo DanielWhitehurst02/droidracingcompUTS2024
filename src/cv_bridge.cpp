@@ -326,8 +326,13 @@ void throttleThread(){
     cin >> inpt;
     if (inpt == 'w'){
       mtx.lock();
-      steerAng = 0;
+
       throttle = maxThrottle;
+      mtx.unlock();
+    }
+    else if (inpt == 'e'){
+      mtx.lock();
+      steerAng = 0;
       mtx.unlock();
     }
     else if (inpt == 's'){
