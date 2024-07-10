@@ -313,7 +313,7 @@ void serialThread()
 
   //std::cout << "run is true: "<< std::endl;
   mtx.unlock();
-  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
   //my_serial.flush();
   }
 }
@@ -515,7 +515,8 @@ while (true)
     //-50
   }
   else if (!contourThreshY && contourThreshB){
-    steerAng = angB*1.3;
+    // steerAng = angB*1.3;
+    steerAng = 60;
     lastSteer = steerAng;
     //50
   }
