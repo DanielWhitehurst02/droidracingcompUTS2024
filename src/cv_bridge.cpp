@@ -358,7 +358,7 @@ void throttleThread(){
     }
 
     cap.set(CAP_PROP_AUTO_EXPOSURE , 1);
-    cap.set(CAP_PROP_EXPOSURE , 60);
+    cap.set(CAP_PROP_EXPOSURE , 120);
 
 
     namedWindow("Control"); //create a window called "Control"
