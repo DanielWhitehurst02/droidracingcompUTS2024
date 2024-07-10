@@ -5,6 +5,7 @@
 #include <opencv4/opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/videoio.hpp>
 #include <iostream>
 #include <vector>
 #include <math.h>
@@ -297,10 +298,10 @@ void serialThread()
     tempthrot = 0;
     serialTog = 1;
   }
-  // else if (serialTog == 1){
-  //   tempthrot = 0;
-  //   serialTog = 2;
-  // }
+  else if (serialTog == 1){
+    tempthrot = 0;
+    serialTog = 2;
+  }
   else{
     tempthrot = throttle;
     serialTog = 0;
@@ -344,7 +345,8 @@ void throttleThread(){
   bool contourThreshY = false;
   bool contourThreshB = false;
 
-    VideoCapture cap(0); //capture the video from web cam
+    VideoCapture cap(1); //capture the video from web cam
+  
 
     
 
@@ -354,6 +356,10 @@ void throttleThread(){
          cout << "Cannot open the web cam" << endl;
          return -1;
     }
+
+    cap.set(CAP_PROP_AUTO_EXPOSURE , 1);
+    cap.set(CAP_PROP_EXPOSURE , 60);
+
 
     namedWindow("Control"); //create a window called "Control"
 
@@ -515,8 +521,8 @@ while (true)
     //-50
   }
   else if (!contourThreshY && contourThreshB){
-    // steerAng = angB*1.3;
-    steerAng = 60;
+    steerAng = angB*1.3;
+    //steerAng = 60;
     lastSteer = steerAng;
     //50
   }
